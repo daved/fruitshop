@@ -3,6 +3,7 @@ package controllertests
 import (
 	"encoding/json"
 	"fruitshop/internal/models"
+	"fruitshop/internal/testdb"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -13,11 +14,11 @@ import (
 
 func TestGetFruits(t *testing.T) {
 
-	err := refreshFruitTable()
+	err := testdb.RefreshFruitTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = seedFruits()
+	_, err = testdb.SeedFruits(db)
 	if err != nil {
 		log.Fatal(err)
 	}

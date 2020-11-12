@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"fruitshop/internal/testdb"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -15,11 +16,11 @@ import (
 
 func TestCreateCustomer(t *testing.T) {
 
-	err := refreshCustomerTable()
+	err := testdb.RefreshCustomerTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = refreshCartTable()
+	err = testdb.RefreshCartTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,16 +68,16 @@ func TestCreateCustomer(t *testing.T) {
 
 func TestGetCustomerByLoginID(t *testing.T) {
 
-	err := refreshCustomerTable()
+	err := testdb.RefreshCustomerTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = refreshCartTable()
+	err = testdb.RefreshCartTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	user, err := seedOneCustomer()
+	user, err := testdb.SeedOneCustomer(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -125,11 +126,11 @@ func TestGetCustomerByLoginID(t *testing.T) {
 
 func TestGetCustomerByLoginIDNotAvailable(t *testing.T) {
 
-	err := refreshCustomerTable()
+	err := testdb.RefreshCustomerTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = refreshCartTable()
+	err = testdb.RefreshCartTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}

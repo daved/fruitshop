@@ -3,6 +3,7 @@ package controllertests
 import (
 	"encoding/json"
 	"fruitshop/internal/models"
+	"fruitshop/internal/testdb"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -14,11 +15,11 @@ import (
 
 func TestGetDiscounts(t *testing.T) {
 
-	err := refreshDiscountsTable()
+	err := testdb.RefreshDiscountsTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}
-	_, err = seedSingleItemDiscount()
+	_, err = testdb.SeedSingleItemDiscount(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,7 +43,7 @@ func TestGetDiscounts(t *testing.T) {
 
 func TestGetDiscountsNoDiscountAvailble(t *testing.T) {
 
-	err := refreshDiscountsTable()
+	err := testdb.RefreshDiscountsTable(db)
 	if err != nil {
 		log.Fatal(err)
 	}

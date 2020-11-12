@@ -1,64 +1,34 @@
-package controllertests
+package testdb
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"testing"
 
-	"fruitshop/internal/cartsvc"
-	"fruitshop/internal/controllers"
 	"fruitshop/internal/models"
 
 	"github.com/jinzhu/gorm"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-var server = &controllers.TooCommon{}
-var cartSvc *cartsvc.CartSvc
-
-func TestMain(m *testing.M) {
-
-	Database("sqlite3", "fruitshop.sqlite")
-
-	os.Exit(m.Run())
-
-}
-
-func Database(Dbdriver, DbName string) {
-	var err error
-	TestDbDriver := Dbdriver
-
-	if TestDbDriver == "sqlite3" {
-		testDbName := os.Getenv("TestDbName")
-		server.DB, err = gorm.Open(TestDbDriver, testDbName)
-		if err != nil {
-			fmt.Printf("Cannot connect to %s database\n", TestDbDriver)
-			log.Fatal("This is the error:", err)
-		} else {
-			fmt.Printf("We are connected to the %s database\n", TestDbDriver)
-		}
-		server.DB.Exec("PRAGMA foreign_keys = ON")
-		server.DB.LogMode(true)
-
-		cartSvc = cartsvc.New(server.DB)
+func Database() (*gorm.DB, error) {
+	testDbName := os.Getenv("TestDbName")
+	db, err := gorm.Open("sqlite3", testDbName)
+	if err != nil {
+		return nil, err
 	}
+	db.Exec("PRAGMA foreign_keys = ON")
+	db.LogMode(true)
 
-	/*
-		If we every wanted to switch to a different database we can use this switch at variable TestDbDriver reading fron env
-		And execute appropriate DB in respective environments, Such as all acceptance tests cant run on sqllite in-memory db
-		integration tests and production calls can be switched to mysql or prostgres. Here GORM gives us a very good flexibility
-		to switch to multiple databases without changing the code.
-		Code is placed at the end of this file
-	*/
+	return db, nil
 }
 
-func refreshCustomerTable() error {
-	err := server.DB.DropTableIfExists(&models.Customer{}).Error
+func RefreshCustomerTable(db *gorm.DB) error {
+	err := db.DropTableIfExists(&models.Customer{}).Error
 	if err != nil {
 		return err
 	}
 
-	err = server.DB.AutoMigrate(&models.Customer{}).Error
+	err = db.AutoMigrate(&models.Customer{}).Error
 	if err != nil {
 		return err
 	}
@@ -66,8 +36,8 @@ func refreshCustomerTable() error {
 	return nil
 }
 
-func refreshDiscountsTable() error {
-	err := server.DB.DropTableIfExists(
+func RefreshDiscountsTable(db *gorm.DB) error {
+	err := db.DropTableIfExists(
 		&models.SingleItemDiscount{},
 		&models.DualItemDiscount{},
 		&models.SingleItemCoupon{},
@@ -78,7 +48,7 @@ func refreshDiscountsTable() error {
 		return err
 	}
 
-	err = server.DB.AutoMigrate(
+	err = db.AutoMigrate(
 		&models.SingleItemDiscount{},
 		&models.DualItemDiscount{},
 		&models.SingleItemCoupon{},
@@ -92,13 +62,13 @@ func refreshDiscountsTable() error {
 	return nil
 }
 
-func refreshFruitTable() error {
-	err := server.DB.DropTableIfExists(&models.Fruit{}).Error
+func RefreshFruitTable(db *gorm.DB) error {
+	err := db.DropTableIfExists(&models.Fruit{}).Error
 	if err != nil {
 		return err
 	}
 
-	err = server.DB.AutoMigrate(&models.Fruit{}).Error
+	err = db.AutoMigrate(&models.Fruit{}).Error
 	if err != nil {
 		return err
 	}
@@ -106,8 +76,8 @@ func refreshFruitTable() error {
 	return nil
 }
 
-func refreshCartTable() error {
-	err := server.DB.DropTableIfExists(&models.Cart{},
+func RefreshCartTable(db *gorm.DB) error {
+	err := db.DropTableIfExists(&models.Cart{},
 		&models.CartItem{},
 		&models.Payment{},
 		&models.AppliedDualItemDiscount{},
@@ -117,7 +87,7 @@ func refreshCartTable() error {
 		return err
 	}
 
-	err = server.DB.AutoMigrate(&models.Cart{},
+	err = db.AutoMigrate(&models.Cart{},
 		&models.CartItem{},
 		&models.Payment{},
 		&models.AppliedDualItemDiscount{},
@@ -131,8 +101,8 @@ func refreshCartTable() error {
 	return nil
 }
 
-func refreshCartItemTable() error {
-	err := server.DB.DropTableIfExists(
+func RefreshCartItemTable(db *gorm.DB) error {
+	err := db.DropTableIfExists(
 		&models.Cart{},
 		&models.CartItem{},
 		&models.Fruit{},
@@ -148,7 +118,7 @@ func refreshCartItemTable() error {
 		return err
 	}
 
-	err = server.DB.AutoMigrate(
+	err = db.AutoMigrate(
 		&models.Cart{},
 		&models.CartItem{},
 		&models.Fruit{},
@@ -168,9 +138,10 @@ func refreshCartItemTable() error {
 	return nil
 }
 
-func seedOneCart() (models.Cart, error) {
-
-	_ = refreshCartTable()
+func SeedOneCart(db *gorm.DB) (models.Cart, error) {
+	if err := RefreshCartTable(db); err != nil {
+		return models.Cart{}, err
+	}
 
 	newCart := models.Cart{
 		CustomerId:   1,
@@ -179,17 +150,19 @@ func seedOneCart() (models.Cart, error) {
 		Status:       "OPEN",
 	}
 
-	err := server.DB.Model(&models.Cart{}).Create(&newCart).Error
+	err := db.Model(&models.Cart{}).Create(&newCart).Error
 	if err != nil {
-		log.Fatalf("cannot seed Cart table: %v", err)
+		return models.Cart{}, err
 	}
 
 	log.Printf("seedOneCart routine OK !!!")
 	return newCart, nil
 }
-func seedSingleItemDiscount() (models.AppliedSingleItemDiscount, error) {
 
-	_ = refreshDiscountsTable()
+func SeedSingleItemDiscount(db *gorm.DB) (models.AppliedSingleItemDiscount, error) {
+	if err := RefreshDiscountsTable(db); err != nil {
+		return models.AppliedSingleItemDiscount{}, err
+	}
 
 	newDiscount := models.AppliedSingleItemDiscount{
 		CartID:  1,
@@ -204,22 +177,23 @@ func seedSingleItemDiscount() (models.AppliedSingleItemDiscount, error) {
 			ID: 1,
 		},
 	}
-	err := server.DB.Model(&models.SingleItemDiscount{}).Create(&newAppleDiscount).Error
+	err := db.Model(&models.SingleItemDiscount{}).Create(&newAppleDiscount).Error
 	if err != nil {
-		log.Fatalf("cannot seed Single item discount table: %v", err)
+		return models.AppliedSingleItemDiscount{}, err
 	}
-	err = server.DB.Model(&models.AppliedSingleItemDiscount{}).Create(&newDiscount).Error
+	err = db.Model(&models.AppliedSingleItemDiscount{}).Create(&newDiscount).Error
 	if err != nil {
-		log.Fatalf("cannot seed Single item discount table: %v", err)
+		return models.AppliedSingleItemDiscount{}, err
 	}
 
 	log.Printf("seedSingleItemDiscount routine OK !!!")
 	return newDiscount, nil
 }
 
-func seedOneCartItem() (models.CartItem, error) {
-
-	_ = refreshCartItemTable()
+func SeedOneCartItem(db *gorm.DB) (models.CartItem, error) {
+	if err := RefreshCartItemTable(db); err != nil {
+		return models.CartItem{}, err
+	}
 
 	newCartItem := models.CartItem{
 		CartID:              1,
@@ -230,19 +204,22 @@ func seedOneCartItem() (models.CartItem, error) {
 		ItemDiscountedTotal: 0.0,
 	}
 
-	err := server.DB.Model(&models.CartItem{}).Create(&newCartItem).Error
+	err := db.Model(&models.CartItem{}).Create(&newCartItem).Error
 	if err != nil {
-		log.Fatalf("cannot seed CartItem table: %v", err)
+		return models.CartItem{}, err
 	}
 
 	log.Printf("seedOneCartItem routine OK !!!")
 	return newCartItem, nil
 }
 
-func seedOneCustomer() (models.Customer, error) {
-
-	_ = refreshCustomerTable()
-	_ = refreshCartTable()
+func SeedOneCustomer(db *gorm.DB) (models.Customer, error) {
+	if err := RefreshCustomerTable(db); err != nil {
+		return models.Customer{}, err
+	}
+	if err := RefreshCartTable(db); err != nil {
+		return models.Customer{}, err
+	}
 
 	newcart := models.Cart{
 		Total:  0.0,
@@ -256,7 +233,7 @@ func seedOneCustomer() (models.Customer, error) {
 		Cart:      newcart,
 	}
 
-	err := server.DB.Model(&models.Customer{}).Create(&customer).Error
+	err := db.Model(&models.Customer{}).Create(&customer).Error
 	if err != nil {
 		log.Fatalf("cannot seed customers table: %v", err)
 	}
@@ -265,8 +242,7 @@ func seedOneCustomer() (models.Customer, error) {
 	return customer, nil
 }
 
-func seedFruits() ([]models.Fruit, error) {
-
+func SeedFruits(db *gorm.DB) ([]models.Fruit, error) {
 	var err error
 	if err != nil {
 		return nil, err
@@ -290,7 +266,7 @@ func seedFruits() ([]models.Fruit, error) {
 		},
 	}
 	for i, _ := range fruits {
-		err := server.DB.Model(&models.Fruit{}).Create(&fruits[i]).Error
+		err := db.Model(&models.Fruit{}).Create(&fruits[i]).Error
 		if err != nil {
 			return []models.Fruit{}, err
 		}
